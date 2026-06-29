@@ -1,0 +1,6 @@
+{
+  "name": "PDFDrop",
+  "description": "All-in-one PDF toolkit and PDF Editor. Merge, split, compress, protect, convert files, and edit PDF text and images entirely in your browser with zero server uploads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
