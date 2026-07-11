@@ -273,6 +273,92 @@ export default function HomeView({ onSelectTool }: HomeViewProps) {
           </button>
         ))}
       </div>
+      {/* Content Section — Why & How */}
+      <div className="mt-20 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-3">Why use PDFDrop?</h2>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Most online PDF tools require you to upload your files to a remote server, 
+              create an account, or pay a monthly subscription just to merge two documents. 
+              PDFDrop was built to remove all of that friction. Every tool — from merging 
+              and compressing to converting Word, Excel, and PowerPoint files — runs 
+              entirely inside your browser using WebAssembly. Nothing you upload ever 
+              leaves your device, there's no sign-up wall, and there's no artificial limit 
+              on how many files you can process.
+            </p>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-3">How it works</h2>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              When you drop a file into any PDFDrop tool, the processing happens locally 
+              using battle-tested libraries like pdf-lib and pdf.js, running directly in 
+              your browser's memory. There's no backend server receiving your documents, 
+              which means faster processing for smaller files and complete privacy for 
+              sensitive documents like contracts, ID scans, or financial statements. Once 
+              you're done, your file downloads straight to your device — no waiting for 
+              an email link or account verification.
+            </p>
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mb-16">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Frequently asked questions</h2>
+          <div className="space-y-3">
+            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
+              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
+                Is PDFDrop really free to use?
+              </summary>
+              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                Yes. All tools on PDFDrop are completely free, with no hidden limits on 
+                file size, number of conversions, or premium-only features. There's no 
+                account required and no credit card needed at any point.
+              </p>
+            </details>
+            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
+              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
+                Are my files uploaded to a server?
+              </summary>
+              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                No. Every tool processes your files locally, inside your own browser. 
+                Your documents are never transmitted to PDFDrop's servers or any third 
+                party, which makes it safe to use for sensitive or confidential files.
+              </p>
+            </details>
+            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
+              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
+                What file formats can I convert to PDF?
+              </summary>
+              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                PDFDrop supports converting Word documents (.docx), Excel spreadsheets 
+                (.xlsx), PowerPoint presentations (.pptx), plain text files, and common 
+                image formats like JPG, PNG, and WEBP directly into PDF format.
+              </p>
+            </details>
+            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
+              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
+                Does compressing a PDF reduce its quality?
+              </summary>
+              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                PDFDrop's compression tool offers adjustable compression levels, so you 
+                can choose a lighter setting to preserve maximum quality, or a higher 
+                setting for smaller file sizes when quality is less critical.
+              </p>
+            </details>
+            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
+              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
+                Do I need to install anything to use PDFDrop?
+              </summary>
+              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
+                No installation is required. PDFDrop works directly in any modern web 
+                browser on desktop or mobile, so you can merge, edit, or convert PDFs 
+                without downloading any software.
+              </p>
+            </details>
+          </div>
+        </div>
+      </div>
 
       {/* Safe Disclaimer */}
       <div className="mt-16 text-center text-xs text-gray-400 max-w-md mx-auto leading-relaxed border-t border-gray-100 pt-6">
