@@ -8,7 +8,7 @@ import {
   Lock, 
   Edit3,
   Sparkles,
-  ArrowRight,
+  Search,
   Presentation,
   FileUp,
   Copy,
@@ -36,6 +36,7 @@ interface ToolCard {
 
 export default function HomeView({ onSelectTool }: HomeViewProps) {
   const [activeCategory, setActiveCategory] = useState<CategoryType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const tools: ToolCard[] = [
     {
@@ -180,9 +181,14 @@ export default function HomeView({ onSelectTool }: HomeViewProps) {
     { id: 'security', label: 'Security' },
   ];
 
-  const filteredTools = activeCategory === 'all' 
-    ? tools 
-    : tools.filter(t => t.category === activeCategory);
+  const filteredTools = tools.filter(tool => {
+    const matchesCategory = activeCategory === 'all' || tool.category === activeCategory;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = q === '' || 
+      tool.title.toLowerCase().includes(q) || 
+      tool.description.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
@@ -199,28 +205,17 @@ export default function HomeView({ onSelectTool }: HomeViewProps) {
         </p>
       </div>
 
-      {/* Primary Action Banner for Editor */}
-      <div className="mb-12 max-w-3xl mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-sm shadow-blue-200">
-            <Edit3 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-bold text-gray-900 text-base">Interactive PDF Editor</h4>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded uppercase tracking-wider">Most Popular</span>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">Open any PDF to type new text, draw images, and save changes locally.</p>
-          </div>
-        </div>
-        <button
-          onClick={() => onSelectTool('editor')}
-          className="w-full md:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:translate-x-0.5"
-          id="btn-quick-editor"
-        >
-          Open PDF Editor
-          <ArrowRight className="w-4 h-4" />
-        </button>
+      {/* Search Bar */}
+      <div className="mb-12 max-w-xl mx-auto relative">
+        <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search tools — merge, compress, watermark..."
+          className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 shadow-xs transition-all"
+          id="tool-search-input"
+        />
       </div>
 
       {/* Category Tabs */}
@@ -273,92 +268,17 @@ export default function HomeView({ onSelectTool }: HomeViewProps) {
           </button>
         ))}
       </div>
-      {/* Content Section — Why & How */}
-      <div className="mt-20 max-w-3xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Why use PDFDrop?</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Most online PDF tools require you to upload your files to a remote server, 
-              create an account, or pay a monthly subscription just to merge two documents. 
-              PDFDrop was built to remove all of that friction. Every tool — from merging 
-              and compressing to converting Word, Excel, and PowerPoint files — runs 
-              entirely inside your browser using WebAssembly. Nothing you upload ever 
-              leaves your device, there's no sign-up wall, and there's no artificial limit 
-              on how many files you can process.
-            </p>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">How it works</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              When you drop a file into any PDFDrop tool, the processing happens locally 
-              using battle-tested libraries like pdf-lib and pdf.js, running directly in 
-              your browser's memory. There's no backend server receiving your documents, 
-              which means faster processing for smaller files and complete privacy for 
-              sensitive documents like contracts, ID scans, or financial statements. Once 
-              you're done, your file downloads straight to your device — no waiting for 
-              an email link or account verification.
-            </p>
-          </div>
-        </div>
 
-        {/* FAQ Section */}
-        <div className="mb-16">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Frequently asked questions</h2>
-          <div className="space-y-3">
-            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
-              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
-                Is PDFDrop really free to use?
-              </summary>
-              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                Yes. All tools on PDFDrop are completely free, with no hidden limits on 
-                file size, number of conversions, or premium-only features. There's no 
-                account required and no credit card needed at any point.
-              </p>
-            </details>
-            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
-              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
-                Are my files uploaded to a server?
-              </summary>
-              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                No. Every tool processes your files locally, inside your own browser. 
-                Your documents are never transmitted to PDFDrop's servers or any third 
-                party, which makes it safe to use for sensitive or confidential files.
-              </p>
-            </details>
-            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
-              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
-                What file formats can I convert to PDF?
-              </summary>
-              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                PDFDrop supports converting Word documents (.docx), Excel spreadsheets 
-                (.xlsx), PowerPoint presentations (.pptx), plain text files, and common 
-                image formats like JPG, PNG, and WEBP directly into PDF format.
-              </p>
-            </details>
-            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
-              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
-                Does compressing a PDF reduce its quality?
-              </summary>
-              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                PDFDrop's compression tool offers adjustable compression levels, so you 
-                can choose a lighter setting to preserve maximum quality, or a higher 
-                setting for smaller file sizes when quality is less critical.
-              </p>
-            </details>
-            <details className="group bg-white border border-gray-200/80 rounded-xl p-4 cursor-pointer">
-              <summary className="font-semibold text-sm text-gray-900 flex items-center justify-between">
-                Do I need to install anything to use PDFDrop?
-              </summary>
-              <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-                No installation is required. PDFDrop works directly in any modern web 
-                browser on desktop or mobile, so you can merge, edit, or convert PDFs 
-                without downloading any software.
-              </p>
-            </details>
-          </div>
+      {/* Empty State */}
+      {filteredTools.length === 0 && (
+        <div className="text-center py-16">
+          <Search className="w-10 h-10 text-gray-300 mx-auto mb-4" />
+          <h3 className="font-semibold text-gray-900 text-base mb-1">No tools found</h3>
+          <p className="text-sm text-gray-500">
+            Try a different search term{activeCategory !== 'all' ? ' or switch category' : ''}.
+          </p>
         </div>
-      </div>
+      )}
 
       {/* Safe Disclaimer */}
       <div className="mt-16 text-center text-xs text-gray-400 max-w-md mx-auto leading-relaxed border-t border-gray-100 pt-6">
