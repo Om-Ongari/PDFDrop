@@ -1336,7 +1336,7 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
           {/* Left panel: File drop area / Content input */}
           <div className="p-6 lg:col-span-7 space-y-6">
             
-            {(activeTool === 'word2pdf' || activeTool === 'docx2pdf') ? (
+           {activeTool === 'word2pdf' ? (
               /* Rich edit area for Word to PDF */
               <div className="space-y-4">
                 <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -1369,6 +1369,43 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
                 <div className="text-right text-[10px] text-gray-400 font-mono">
                   {wordText.length} characters • {wordText.split(/\s+/).filter(Boolean).length} words
                 </div>
+              </div>
+            ) : activeTool === 'docx2pdf' ? (
+              /* Live preview - shows exactly what will export, images included */
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <FileUp className="w-5 h-5 text-blue-500" />
+                    <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Document Preview</span>
+                  </div>
+                  <label className="text-xs bg-white text-blue-600 hover:text-blue-700 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors shadow-xs cursor-pointer flex items-center gap-1 font-semibold">
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    Import .docx file
+                    <input 
+                      type="file" 
+                      accept=".docx" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          addFiles([e.target.files[0]]);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                {docxHtml ? (
+                  <div 
+                    className="w-full h-[400px] overflow-y-auto p-6 bg-white border border-gray-200 rounded-xl text-sm shadow-inner"
+                    dangerouslySetInnerHTML={{ __html: docxHtml }}
+                  />
+                ) : (
+                  <div className="w-full h-[400px] flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-200 rounded-xl">
+                    <FileUp className="w-8 h-8 text-gray-300 mb-2" />
+                    <p className="text-xs text-gray-400 max-w-xs">
+                      Import a .docx file above. This preview shows exactly what will be exported to PDF — images and formatting included.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : activeTool === 'txt2pdf' ? (
               /* Plain Text Editor */
