@@ -31,7 +31,7 @@ import {
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { ToolType, CategoryType, PDFFile } from '../types';
-import { convertTextToPDF } from '../utils/wordToPdfHelper';
+import { convertTextToPDF, convertHtmlToPDF } from '../utils/wordToPdfHelper';
 import { encryptPDFBytes } from '../utils/cryptoHelper';
 
 // Configure pdfjs worker using standard bundle reference
@@ -74,6 +74,7 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
   const [wordTitle, setWordTitle] = useState('PDFDrop Technical Guide');
   const [wordAuthor, setWordAuthor] = useState('PDFDrop Team');
   const [wordFontSize, setWordFontSize] = useState(12);
+  const [docxHtml, setDocxHtml] = useState<string>('');
 
   // Protect-specific states
   const [password, setPassword] = useState('');
@@ -111,13 +112,14 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
   const [txtTitle, setTxtTitle] = useState('Plain Text Document');
 
   // Clear states when tool changes
-  useEffect(() => {
-    setSelectedFiles([]);
-    setProcessStatus(null);
-    setPageCount(0);
-    setSelectedSplitPages([]);
-  }, [activeTool]);
-
+ useEffect(() => {
+  setSelectedFiles([]);
+  setProcessStatus(null);
+  setPageCount(0);
+  setSelectedSplitPages([]);
+  setDocxHtml('');
+}, [activeTool]);
+  
   // Load and count pages for splitting / compressing when a file is selected
   useEffect(() => {
     if (selectedFiles.length === 1 && (activeTool === 'split' || activeTool === 'compress' || activeTool === 'protect' || activeTool === 'extract' || activeTool === 'watermark' || activeTool === 'rotate')) {
@@ -298,40 +300,34 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
       const file = selectedFiles[0].file;
       const extension = file.name.split('.').pop()?.toLowerCase();
 
-      // 1. DOCX -> PDF
+    // 1. DOCX -> PDF (preserves images & formatting via mammoth)
       if (activeTool === 'docx2pdf' && extension === 'docx') {
         const loadDocx = async () => {
           setIsProcessing(true);
-          setProcessStatus({ type: 'success', message: 'Reading and unzipping DOCX document...' });
+          setProcessStatus({ type: 'success', message: 'Reading DOCX and extracting content, images & formatting...' });
           try {
-            const JSZip = (await import('jszip')).default;
+            const mammothModule: any = await import('mammoth');
+            const mammoth = mammothModule.default ?? mammothModule;
             const arrayBuffer = await file.arrayBuffer();
-            const zip = await JSZip.loadAsync(arrayBuffer);
-            const docXml = await zip.file('word/document.xml')?.async('string');
-            if (!docXml) {
-              throw new Error('This is not a valid Word DOCX file (missing word/document.xml).');
-            }
-            
-            // DOM Parsing
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(docXml, 'text/xml');
-            const paragraphs = xmlDoc.getElementsByTagName('w:p');
-            const linesList: string[] = [];
-            
-            for (let i = 0; i < paragraphs.length; i++) {
-              const p = paragraphs[i];
-              const tNodes = p.getElementsByTagName('w:t');
-              const textParts = Array.from(tNodes).map(n => n.textContent || '');
-              if (textParts.length > 0) {
-                linesList.push(textParts.join(''));
-              } else {
-                linesList.push('');
+
+            const result = await mammoth.convertToHtml(
+              { arrayBuffer },
+              {
+                convertImage: mammoth.images.imgElement((image: any) =>
+                  image.read('base64').then((imageBuffer: string) => ({
+                    src: `data:${image.contentType};base64,${imageBuffer}`
+                  }))
+                )
               }
+            );
+
+            if (!result.value || result.value.trim() === '') {
+              throw new Error('Could not extract readable content from this DOCX file.');
             }
-            const fullText = linesList.join('\n');
-            setWordText(fullText);
+
+            setDocxHtml(result.value);
             setWordTitle(file.name.replace('.docx', ''));
-            setProcessStatus({ type: 'success', message: 'DOCX document parsed successfully! Customize the content or export to PDF.' });
+            setProcessStatus({ type: 'success', message: 'DOCX parsed successfully — images and formatting preserved! Preview below and export to PDF.' });
           } catch (err: any) {
             console.error(err);
             setProcessStatus({ type: 'error', message: err.message || 'Failed to parse DOCX. Please try a different document.' });
@@ -833,22 +829,19 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
     setConfirmPassword('');
   };
 
-  // 7. DOCX to PDF compilation
+ // 7. DOCX to PDF compilation (image + formatting preserving)
   const handleDocx2Pdf = async () => {
     setIsProcessing(true);
     setProcessStatus(null);
     try {
-      const generatedBytes = await convertTextToPDF(wordText, {
-        fontSize: wordFontSize,
-        lineHeight: wordFontSize * 1.5,
-        margin: 50,
-        title: wordTitle,
-        author: wordAuthor
-      });
+      if (!docxHtml) {
+        throw new Error('Please import a DOCX file first.');
+      }
 
+      const generatedBytes = await convertHtmlToPDF(docxHtml, wordTitle);
       const fileName = selectedFiles[0] ? selectedFiles[0].name.replace('.docx', '') : 'docx_formatted';
       triggerDownload(generatedBytes, `${fileName}.pdf`);
-      setProcessStatus({ type: 'success', message: 'Word DOCX parsed, formatted, and downloaded successfully!' });
+      setProcessStatus({ type: 'success', message: 'Word DOCX converted to PDF — images and formatting preserved!' });
     } catch (err: any) {
       console.error(err);
       setProcessStatus({ type: 'error', message: err.message || 'Error compiling parsed DOCX content.' });
