@@ -8,14 +8,17 @@ import {
   Lock, 
   Edit3,
   Sparkles,
-  Search,
+  ArrowRight,
   Presentation,
   FileUp,
   Copy,
   Type,
   FileSpreadsheet,
   RotateCw,
-  FileCode
+  FileCode,
+  Unlock,
+  FileImage,
+  Hash
 } from 'lucide-react';
 import { ToolType, CategoryType } from '../types';
 
@@ -161,7 +164,7 @@ export default function HomeView({ onSelectTool }: HomeViewProps) {
       bgColor: 'bg-red-50 hover:bg-red-100/80',
       category: 'security',
     },
-    {
+   {
       id: 'watermark',
       title: 'Stamp Watermark',
       description: 'Add custom text watermarks with customizable opacity to PDF pages',
@@ -169,6 +172,36 @@ export default function HomeView({ onSelectTool }: HomeViewProps) {
       iconColor: 'text-orange-600',
       bgColor: 'bg-orange-50 hover:bg-orange-100/80',
       category: 'security',
+      isNew: true,
+    },
+    {
+      id: 'unlock',
+      title: 'Unlock PDF',
+      description: 'Remove password protection from PDFs secured with PDFDrop',
+      icon: <Unlock className="w-5 h-5" />,
+      iconColor: 'text-lime-600',
+      bgColor: 'bg-lime-50 hover:bg-lime-100/80',
+      category: 'security',
+      isNew: true,
+    },
+    {
+      id: 'pdf2img',
+      title: 'PDF → Image',
+      description: 'Export each page of a PDF as a high-quality JPG or PNG image',
+      icon: <FileImage className="w-5 h-5" />,
+      iconColor: 'text-cyan-500',
+      bgColor: 'bg-cyan-50 hover:bg-cyan-100/80',
+      category: 'convert',
+      isNew: true,
+    },
+    {
+      id: 'pagenumbers',
+      title: 'Add Page Numbers',
+      description: 'Stamp customizable page numbers onto every page of a PDF',
+      icon: <Hash className="w-5 h-5" />,
+      iconColor: 'text-violet-500',
+      bgColor: 'bg-violet-50 hover:bg-violet-100/80',
+      category: 'organize',
       isNew: true,
     },
   ];
