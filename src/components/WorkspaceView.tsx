@@ -26,7 +26,10 @@ import {
   Settings,
   Shield,
   Check,
-  Download
+  Download,
+  Unlock,
+  FileImage,
+  Hash
 } from 'lucide-react';
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
