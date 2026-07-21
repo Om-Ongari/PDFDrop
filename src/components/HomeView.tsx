@@ -18,7 +18,8 @@ import {
   FileCode,
   Unlock,
   FileImage,
-  Hash
+  Hash,
+  Search
 } from 'lucide-react';
 import { ToolType, CategoryType } from '../types';
 
