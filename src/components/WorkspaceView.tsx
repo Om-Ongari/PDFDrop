@@ -32,8 +32,7 @@ import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { ToolType, CategoryType, PDFFile } from '../types';
 import { convertTextToPDF, convertHtmlToPDF } from '../utils/wordToPdfHelper';
-import { encryptPDFBytes } from '../utils/cryptoHelper';
-
+import { encryptPDFBytes, decryptPDFBytes, isPDFDropSecureFile } from '../utils/cryptoHelper';
 // Configure pdfjs worker using standard bundle reference
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -96,6 +95,21 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
   const [watermarkFontSize, setWatermarkFontSize] = useState(48);
   const [watermarkOpacity, setWatermarkOpacity] = useState(0.2);
   const [watermarkRotation, setWatermarkRotation] = useState(-45);
+
+  // Unlock-specific states
+  const [unlockPassword, setUnlockPassword] = useState('');
+
+  // PDF to Image specific states
+  const [imgExportFormat, setImgExportFormat] = useState<'png' | 'jpeg'>('png');
+  const [imgExportQuality, setImgExportQuality] = useState(0.92);
+  const [imgExportScale, setImgExportScale] = useState(2);
+
+  // Page Numbers specific states
+  const [pageNumPosition, setPageNumPosition] = useState<'bottom-center'|'bottom-right'|'bottom-left'|'top-center'|'top-right'|'top-left'>('bottom-center');
+  const [pageNumFormat, setPageNumFormat] = useState<'page-of-total'|'number-only'|'number-slash-total'>('page-of-total');
+  const [pageNumStart, setPageNumStart] = useState(1);
+
+  // Excel-specific states
 
   // Excel-specific states
   const [xlsxSheets, setXlsxSheets] = useState<string[]>([]);
@@ -260,7 +274,7 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
       multiple: false,
       actionText: 'Protect PDF',
     },
-    editor: {
+   editor: {
       title: 'PDF Editor',
       description: 'Advanced editor',
       icon: <FileText className="w-5 h-5" />,
@@ -268,6 +282,33 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
       accepts: '.pdf',
       multiple: false,
       actionText: 'Open Editor',
+    },
+    unlock: {
+      title: 'Unlock PDF',
+      description: 'Remove password protection from PDFs secured with PDFDrop',
+      icon: <Unlock className="w-5 h-5 text-lime-600" />,
+      bgColor: 'bg-lime-50',
+      accepts: '.pdf',
+      multiple: false,
+      actionText: 'Unlock PDF',
+    },
+    pdf2img: {
+      title: 'PDF → Image',
+      description: 'Export every page as a high-quality JPG or PNG image',
+      icon: <FileImage className="w-5 h-5 text-cyan-500" />,
+      bgColor: 'bg-cyan-50',
+      accepts: '.pdf',
+      multiple: false,
+      actionText: 'Export Images',
+    },
+    pagenumbers: {
+      title: 'Add Page Numbers',
+      description: 'Stamp customizable page numbers onto every page',
+      icon: <Hash className="w-5 h-5 text-violet-500" />,
+      bgColor: 'bg-violet-50',
+      accepts: '.pdf',
+      multiple: false,
+      actionText: 'Add Page Numbers',
     }
   }[activeTool];
 
@@ -563,6 +604,15 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
           break;
         case 'watermark':
           await handleWatermark();
+          break;
+        case 'unlock':
+          await handleUnlock();
+          break;
+        case 'pdf2img':
+          await handlePdf2Img();
+          break;
+        case 'pagenumbers':
+          await handleAddPageNumbers();
           break;
         default:
           throw new Error('Unsupported tool workspace.');
@@ -1250,6 +1300,109 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
       console.error(err);
       throw err;
     }
+  };
+
+  // 13. Unlock PDF Logic
+  const handleUnlock = async () => {
+    if (!unlockPassword) {
+      throw new Error('Please enter the password used to protect this document.');
+    }
+    const file = selectedFiles[0].file;
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    if (!isPDFDropSecureFile(bytes)) {
+      throw new Error('This file was not protected using PDFDrop\'s Protect PDF tool, so it can\'t be unlocked here.');
+    }
+
+    try {
+      const decryptedBytes = await decryptPDFBytes(bytes, unlockPassword);
+      triggerDownload(decryptedBytes, `unlocked_${file.name}`);
+      setProcessStatus({ type: 'success', message: 'Document unlocked and downloaded successfully!' });
+      setUnlockPassword('');
+    } catch (err) {
+      throw new Error('Incorrect password. Please double check and try again.');
+    }
+  };
+
+  // 14. PDF to Image Logic
+  const handlePdf2Img = async () => {
+    const file = selectedFiles[0].file;
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const baseName = file.name.replace(/\.pdf$/i, '');
+    const ext = imgExportFormat === 'png' ? 'png' : 'jpg';
+    const mime = imgExportFormat === 'png' ? 'image/png' : 'image/jpeg';
+
+    const renderPageToDataUrl = async (pageNum: number) => {
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: imgExportScale });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas rendering not supported.');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport } as any).promise;
+      return canvas.toDataURL(mime, imgExportFormat === 'jpeg' ? imgExportQuality : undefined);
+    };
+
+    if (pdfDoc.numPages === 1) {
+      const dataUrl = await renderPageToDataUrl(1);
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${baseName}.${ext}`;
+      link.click();
+    } else {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+        const dataUrl = await renderPageToDataUrl(pageNum);
+        const base64Data = dataUrl.split(',')[1];
+        zip.file(`${baseName}_page_${pageNum}.${ext}`, base64Data, { base64: true });
+      }
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${baseName}_images.zip`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    setProcessStatus({ type: 'success', message: `Exported ${pdfDoc.numPages} page${pdfDoc.numPages > 1 ? 's as a ZIP' : ''} successfully!` });
+  };
+
+  // 15. Add Page Numbers Logic
+  const handleAddPageNumbers = async () => {
+    const file = selectedFiles[0].file;
+    const bytes = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(bytes);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const pages = pdfDoc.getPages();
+
+    pages.forEach((page, idx) => {
+      const { width, height } = page.getSize();
+      const pageDisplayNum = pageNumStart + idx;
+      let label = '';
+      if (pageNumFormat === 'page-of-total') label = `Page ${pageDisplayNum} of ${pages.length}`;
+      else if (pageNumFormat === 'number-only') label = `${pageDisplayNum}`;
+      else label = `${pageDisplayNum} / ${pages.length}`;
+
+      const textWidth = font.widthOfTextAtSize(label, 10);
+      const margin = 30;
+      let x = width / 2 - textWidth / 2;
+      let y = margin;
+
+      if (pageNumPosition.includes('right')) x = width - margin - textWidth;
+      else if (pageNumPosition.includes('left')) x = margin;
+      if (pageNumPosition.startsWith('top')) y = height - margin;
+
+      page.drawText(label, { x, y, size: 10, font, color: rgb(0.35, 0.35, 0.35) });
+    });
+
+    const stampedBytes = await pdfDoc.save();
+    triggerDownload(stampedBytes, `numbered_${file.name}`);
+    setProcessStatus({ type: 'success', message: 'Page numbers added and downloaded successfully!' });
   };
 
   const triggerDownload = (bytes: Uint8Array, filename: string) => {
@@ -2336,6 +2489,128 @@ export default function WorkspaceView({ activeTool, onBack, onNavigateToEditor }
                       value={watermarkRotation}
                       onChange={(e) => setWatermarkRotation(parseInt(e.target.value))}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                    />
+                  </div>
+                </div>
+            )}
+
+              {/* 14. Unlock PDF Settings */}
+              {activeTool === 'unlock' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Document Password</label>
+                    <input
+                      type="password"
+                      value={unlockPassword}
+                      onChange={(e) => setUnlockPassword(e.target.value)}
+                      placeholder="Enter the password used to protect this file"
+                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-lime-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div className="p-3 bg-lime-50 border border-lime-100 rounded-xl text-xs text-lime-800 leading-relaxed">
+                    <strong>Note:</strong> This tool only unlocks PDFs protected using PDFDrop's own Protect PDF tool. Files locked by other software aren't supported here.
+                  </div>
+                </div>
+              )}
+
+              {/* 15. PDF to Image Settings */}
+              {activeTool === 'pdf2img' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Image Format</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setImgExportFormat('png')}
+                        className={`py-1.5 text-xs font-semibold rounded-lg border transition-all ${imgExportFormat === 'png' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        PNG (Lossless)
+                      </button>
+                      <button
+                        onClick={() => setImgExportFormat('jpeg')}
+                        className={`py-1.5 text-xs font-semibold rounded-lg border transition-all ${imgExportFormat === 'jpeg' ? 'bg-cyan-50 border-cyan-500 text-cyan-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        JPG (Smaller)
+                      </button>
+                    </div>
+                  </div>
+                  {imgExportFormat === 'jpeg' && (
+                    <div>
+                      <div className="flex justify-between text-xs font-bold text-gray-700 mb-1">
+                        <span>Quality</span>
+                        <span>{(imgExportQuality * 100).toFixed(0)}%</span>
+                      </div>
+                      <input
+                        type="range" min="0.4" max="1" step="0.05"
+                        value={imgExportQuality}
+                        onChange={(e) => setImgExportQuality(parseFloat(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Resolution</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3].map(sc => (
+                        <button
+                          key={sc}
+                          onClick={() => setImgExportScale(sc)}
+                          className={`py-1.5 text-xs font-semibold rounded-lg border transition-all ${imgExportScale === sc ? 'bg-cyan-50 border-cyan-500 text-cyan-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {sc}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-3 bg-cyan-50 border border-cyan-100 rounded-xl text-xs text-cyan-800 leading-relaxed">
+                    <strong>Note:</strong> Multi-page PDFs export as a downloadable ZIP containing one image per page.
+                  </div>
+                </div>
+              )}
+
+              {/* 16. Page Numbers Settings */}
+              {activeTool === 'pagenumbers' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Position</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'top-left', label: 'Top Left' },
+                        { id: 'top-center', label: 'Top Center' },
+                        { id: 'top-right', label: 'Top Right' },
+                        { id: 'bottom-left', label: 'Bottom Left' },
+                        { id: 'bottom-center', label: 'Bottom Center' },
+                        { id: 'bottom-right', label: 'Bottom Right' },
+                      ].map(pos => (
+                        <button
+                          key={pos.id}
+                          onClick={() => setPageNumPosition(pos.id as any)}
+                          className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${pageNumPosition === pos.id ? 'bg-violet-50 border-violet-500 text-violet-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          {pos.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Format</label>
+                    <select
+                      value={pageNumFormat}
+                      onChange={(e) => setPageNumFormat(e.target.value as any)}
+                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-violet-500 focus:outline-hidden"
+                    >
+                      <option value="page-of-total">Page 1 of 10</option>
+                      <option value="number-only">1</option>
+                      <option value="number-slash-total">1 / 10</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Start numbering at</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={pageNumStart}
+                      onChange={(e) => setPageNumStart(parseInt(e.target.value) || 1)}
+                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-violet-500 focus:outline-hidden"
                     />
                   </div>
                 </div>
