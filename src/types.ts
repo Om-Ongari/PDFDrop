@@ -1,4 +1,4 @@
-export type ToolType = 'merge' | 'split' | 'compress' | 'img2pdf' | 'word2pdf' | 'protect' | 'editor' | 'ppt2pdf' | 'docx2pdf' | 'extract' | 'watermark' | 'xlsx2pdf' | 'rotate' | 'txt2pdf';
+export type ToolType = 'merge' | 'split' | 'compress' | 'img2pdf' | 'word2pdf' | 'protect' | 'editor' | 'ppt2pdf' | 'docx2pdf' | 'extract' | 'watermark' | 'xlsx2pdf' | 'rotate' | 'txt2pdf' | 'unlock' | 'pdf2img' | 'pagenumbers';
 
 export type CategoryType = 'all' | 'organize' | 'convert' | 'optimize' | 'security';
 
