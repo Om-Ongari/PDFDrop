@@ -71,6 +71,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-50 via-white to-gray-50 flex flex-col text-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 animate-gradient-bg flex flex-col text-gray-800">
       {/* Ambient, click-through background. Skipped in the full-screen dark
           editor since it fully covers the viewport there anyway. Rendered
           with a lower stack level (z-0) than the content wrapper below (z-10)
