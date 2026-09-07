@@ -8,7 +8,6 @@ import Header from './components/Header';
 import HomeView from './components/HomeView';
 import WorkspaceView from './components/WorkspaceView';
 import EditorView from './components/EditorView';
-import AnimatedBackground from './components/AnimatedBackground';
 import { ToolType } from './types';
 
 export default function App() {
@@ -71,12 +70,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col text-gray-800">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-50 via-white to-gray-50 flex flex-col text-gray-800">
       {/* Ambient, click-through background. Skipped in the full-screen dark
           editor since it fully covers the viewport there anyway. Rendered
           with a lower stack level (z-0) than the content wrapper below (z-10)
           so it always paints behind the real UI. */}
-      {currentView !== 'editor' && <AnimatedBackground />}
 
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Do not render standard header when in dedicated full-screen dark editor mode */}
